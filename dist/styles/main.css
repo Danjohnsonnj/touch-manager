@@ -1,3 +1,6 @@
+html {
+  --dot-size: 80px;
+}
 html body {
   background: whitesmoke;
 }
@@ -5,4 +8,15 @@ html #TouchRegion {
   width: 100vw;
   height: 100vh;
   background-color: gray;
+  position: relative;
+}
+html .dot {
+  display: block;
+  background-color: red;
+  width: var(--dot-size);
+  height: var(--dot-size);
+  position: absolute;
+  overflow: hidden;
+  border-radius: var(--dot-size);
+  transform: translate(-50%, -50%);
 }

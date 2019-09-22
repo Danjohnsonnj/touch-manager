@@ -2,7 +2,6 @@ class TouchManager {
   constructor(target) {
     // TODO: validate
     this.target = target
-
     this.touches = {}
 
     // TODO: update Babel for class properties plugin
@@ -31,17 +30,10 @@ class TouchManager {
       console.log('start')
 
       newTouches.forEach(t => {
-        this.touches[t.identifier] = {
-          relativePosition: {
-            x: t.clientX,
-            y: t.clientY,
-          },
-          movement: {
-            vertical: null,
-            horizontal: null,
-          },
-        }
+        this.addTouch(t)
+        this.addTouchDot(this.touches[t.identifier])
       })
+
       console.log(this.touches)
       break
 
@@ -49,8 +41,8 @@ class TouchManager {
       console.log('move')
 
       newTouches.forEach(t => this.updateTouch(t))
-
       unchangedTouches.forEach(t => this.becalm(t))
+
       console.log(this.touches)
       break
 
@@ -58,16 +50,34 @@ class TouchManager {
       console.log('end')
 
       this.removeTouches(newTouches.map(t => t.identifier))
+      newTouches.forEach(t => this.removeTouchDot(t.identifier))
+
       console.log(this.touches)
       break
 
     case 'touchcancel':
       console.log('CANCELLING')
+
       this.removeTouches(Object.keys(this.touches))
+
       break
     }
 
     // console.log(this.touches)
+  }
+
+  addTouch(touch) {
+    this.touches[touch.identifier] = {
+      id: touch.identifier,
+      relativePosition: {
+        x: touch.clientX,
+        y: touch.clientY,
+      },
+      movement: {
+        vertical: null,
+        horizontal: null,
+      },
+    }
   }
 
   updateTouch(touch) {
@@ -95,6 +105,31 @@ class TouchManager {
       delete this.touches[id]
     })
   }
+
+  //////
+  // TODO: expose hooks
+  // tap
+  // multitap
+  // swipe (with number of touches)
+  // pinch
+  // zoom
+  // rotate
+
+  //////
+  addTouchDot(t) {
+    const dot = document.createElement('div')
+    dot.classList.add('dot')
+    dot.dataset.id = 'dot-' + t.id
+    dot.style.left = t.relativePosition.x + 'px'
+    dot.style.top = t.relativePosition.y + 'px'
+    this.target.appendChild(dot)
+  }
+
+  removeTouchDot(tId) {
+    const dot = this.target.querySelector(`.dot[data-id="dot-${tId}"]`)
+    this.target.removeChild(dot)
+  }
+
 }
 
 export default TouchManager
