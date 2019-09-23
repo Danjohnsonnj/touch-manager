@@ -3,20 +3,23 @@ html {
 
   body {
     background: whitesmoke;
+    overflow: hidden;
   }
 
   #TouchRegion {
     width: 100vw;
     height: 100vh;
     background-color: gray;
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
   }
 
   .dot {
     display: block;
     background-color: red;
     width: var(--dot-size);
-    height: var(--dot-size);
+    padding-bottom: var(--dot-size);
     position: absolute;
     overflow: hidden;
     border-radius: var(--dot-size);

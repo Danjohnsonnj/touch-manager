@@ -73,7 +73,7 @@
     "no-underscore-dangle": "off",
     "no-unused-expressions": "warn",
     "no-unused-vars": ["warn", {"args": "none"}],
-    "no-use-before-define": "error",
+    "no-use-before-define": ["error", { "functions": false, "classes": false }],
     "no-whitespace-before-property": "error",
     "no-with": "error",
     "one-var-declaration-per-line": ["warn", "always"],

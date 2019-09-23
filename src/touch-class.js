@@ -1,3 +1,18 @@
+const PUBLIC_EVENTS = {
+  'tap:start': {
+    callbacks: [],
+  },
+  'tap:end': {
+    callbacks: [],
+  },
+  'multitap:start': {
+    callbacks: [],
+  },
+  'multitap:end': {
+    callbacks: [],
+  },
+}
+
 class TouchManager {
   constructor(target) {
     // TODO: validate
@@ -5,19 +20,19 @@ class TouchManager {
     this.touches = {}
 
     // TODO: update Babel for class properties plugin
-    this.handleTouch = this.unboundHandleTouch.bind(this)
+    this._handleTouch = this._unboundHandleTouch.bind(this)
 
-    this.bindTarget()
+    this._bindTarget()
   }
 
-  bindTarget() {
-    this.target.addEventListener('touchstart', this.handleTouch)
-    this.target.addEventListener('touchmove', this.handleTouch)
-    this.target.addEventListener('touchend', this.handleTouch)
-    this.target.addEventListener('touchcancel', this.handleTouch)
+  _bindTarget() {
+    this.target.addEventListener('touchstart', this._handleTouch)
+    this.target.addEventListener('touchmove', this._handleTouch)
+    this.target.addEventListener('touchend', this._handleTouch)
+    this.target.addEventListener('touchcancel', this._handleTouch)
   }
 
-  unboundHandleTouch(evt) {
+  _unboundHandleTouch(evt) {
     const type = evt.type
     const newTouches = Array.from(evt.changedTouches)
     const unchangedTouches = Object.keys(this.touches).filter(t => {
@@ -27,46 +42,56 @@ class TouchManager {
 
     switch (type) {
     case 'touchstart':
-      console.log('start')
-
       newTouches.forEach(t => {
-        this.addTouch(t)
-        this.addTouchDot(this.touches[t.identifier])
+        this._addTouch(t)
+
+        PUBLIC_EVENTS['tap:start'].callbacks.forEach(cb => {
+          cb.call(this, this.touches[t.identifier], Object.keys(this.touches).length)
+        })
+
       })
 
-      console.log(this.touches)
+      if (Object.keys(this.touches).length > 1) {
+        PUBLIC_EVENTS['multitap:start'].callbacks.forEach(cb => {
+          cb.call(this, Object.values(this.touches), Object.keys(this.touches).length)
+        })
+      }
+
       break
 
     case 'touchmove':
-      console.log('move')
+      newTouches.forEach(t => this._updateTouch(t))
+      // newTouches.forEach(t => this.moveTouchDot(t.identifier))
+      unchangedTouches.forEach(t => this._becalm(t))
 
-      newTouches.forEach(t => this.updateTouch(t))
-      unchangedTouches.forEach(t => this.becalm(t))
-
-      console.log(this.touches)
       break
 
     case 'touchend':
-      console.log('end')
+      newTouches.forEach(t => {
+        PUBLIC_EVENTS['tap:end'].callbacks.forEach(cb => {
+          cb.call(this, this.touches[t.identifier], Object.keys(this.touches).length)
+        })
+      })
 
-      this.removeTouches(newTouches.map(t => t.identifier))
-      newTouches.forEach(t => this.removeTouchDot(t.identifier))
+      if (Object.keys(this.touches).length > 1) {
+        PUBLIC_EVENTS['multitap:end'].callbacks.forEach(cb => {
+          cb.call(this, Object.values(this.touches), Object.keys(this.touches).length)
+        })
+      }
 
-      console.log(this.touches)
+      this._removeTouches(newTouches.map(t => t))
+
       break
 
     case 'touchcancel':
-      console.log('CANCELLING')
-
-      this.removeTouches(Object.keys(this.touches))
+      this._removeTouches(Object.keys(this.touches))
 
       break
     }
-
-    // console.log(this.touches)
   }
 
-  addTouch(touch) {
+  _addTouch(touch) {
+    // console.log(touch.radiusX, touch.radiusY)
     this.touches[touch.identifier] = {
       id: touch.identifier,
       relativePosition: {
@@ -80,56 +105,56 @@ class TouchManager {
     }
   }
 
-  updateTouch(touch) {
+  _updateTouch(touch) {
     const touchReference = this.touches[touch.identifier]
     const { x, y, } = touchReference.relativePosition
-    this.touches[touch.identifier] = {
-      relativePosition: {
-        x: touch.clientX,
-        y: touch.clientY,
-      },
-      movement: {
-        horizontal: touch.clientX - x,
-        vertical: touch.clientY - y,
-      },
+    this.touches[touch.identifier].relativePosition = {
+      x: touch.clientX,
+      y: touch.clientY,
+    }
+    this.touches[touch.identifier].movement = {
+      horizontal: touch.clientX - x,
+      vertical: touch.clientY - y,
     }
   }
 
-  becalm(touchId) {
+  _becalm(touchId) {
     const touchReference = this.touches[touchId]
     touchReference.movement = { horizontal: null, vertical: null, }
   }
 
-  removeTouches(touchIds) {
-    touchIds.forEach(id => {
-      delete this.touches[id]
+  _removeTouches(touches) {
+    touches.forEach(t => {
+      delete this.touches[t.identifier]
     })
+  }
+
+  ///////
+  on(publicEvent, callback) {
+    const evt = Object.keys(PUBLIC_EVENTS).find(e => e === publicEvent)
+    if (!evt) {
+      return new Error(`${publicEvent} is not an available event.`)
+    }
+
+    PUBLIC_EVENTS[publicEvent].callbacks.push(callback)
   }
 
   //////
   // TODO: expose hooks
-  // tap
-  // multitap
+  // tap:start, tap:end
+  // multitap:start, multitap: end
   // swipe (with number of touches)
   // pinch
   // zoom
   // rotate
 
   //////
-  addTouchDot(t) {
-    const dot = document.createElement('div')
-    dot.classList.add('dot')
-    dot.dataset.id = 'dot-' + t.id
-    dot.style.left = t.relativePosition.x + 'px'
-    dot.style.top = t.relativePosition.y + 'px'
-    this.target.appendChild(dot)
-  }
-
-  removeTouchDot(tId) {
+  moveTouchDot(tId) {
     const dot = this.target.querySelector(`.dot[data-id="dot-${tId}"]`)
-    this.target.removeChild(dot)
+    const touch = this.touches[tId]
+    dot.style.top = parseInt(dot.style.top) + touch.movement.vertical + 'px'
+    dot.style.left = parseInt(dot.style.left) + touch.movement.horizontal + 'px'
   }
-
 }
 
 export default TouchManager
